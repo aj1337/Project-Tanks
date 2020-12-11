@@ -2,10 +2,18 @@ pico-8 cartridge // http://www.pico-8.com
 version 29
 __lua__
 function _init()
+ cls()
  make_player()
- make_bullets()
+ gameover=false
+ p1win=false
+ p2win=false
 end
-function _update() 
+function _update60()
+ if gameover then
+     if (btn(❎)) then _init() end
+     return
+ end
+ cls()
  move_player(player1)
  move_player(player2)
  move_bullets()
@@ -13,39 +21,50 @@ function _update()
  if (player2.cooldown > 0) player2.cooldown-=1
 end
 function _draw()
- cls() --clear screen
  draw_players()
  draw_bullets()
  map(0,0,0,0,16,16)
+ print("P1:",10,10)
+ print(player1.health, 22, 10, 8)
+ print("P2:",10,17)
+ print(player2.health, 22, 17, 8)
+ 
+ if(gameover) then
+  if(p1win) then
+   print_centered("player 1 wins! ❎ continue")
+  else
+   print_centered("player 2 wins! ❎ continue")
+  end
+ end
 end
 
 --Relating to init
 function make_player()
  player1={
   playerNumber=0,
-  x=0,
+  x=10,
   y=64,
   sprite=1,
   cooldown=0,
   dx=2,
   dy=0,
-  bullets={}
+  bullets={},
+  hitbox={x=0,y=2,w=8,h=6},
+  health = 100
   }
 
  player2={
 	 playerNumber=1,
-	 x=120,
+	 x=110,
 	 y=64,
 	 sprite=2,
 	 cooldown=0,
 	 dx=-2,
 	 dy=0,
-	 bullets={}
+	 bullets={},
+	 hitbox={x=0,y=2,w=8,h=6},
+  	 health = 100
  }
-end
-
-function make_bullets()
- bullets={}
 end
 
 function fire(player)
@@ -54,21 +73,23 @@ function fire(player)
 	 x=player.x+1,
 	 y=player.y,
 	 dx=player.dx,
-	 dy=player.dy
+	 dy=player.dy,
+	 hitbox = {x=6,y=3,w=2,h=2}
  }
  if (player.playerNumber==1) then
   bullet.x-=8
  end
  add(player.bullets,bullet)
+ sfx(0)
  player.cooldown = 5
 end
 
 --Relating to update
 function move_player(player)
- if (btn(0,player.playerNumber) and player.x > 0) player.x-=1 --left
- if (btn(1,player.playerNumber) and player.x < 120) player.x+=1 --right
- if (btn(3,player.playerNumber) and player.y < 120) player.y+=1 --down
- if (btn(2,player.playerNumber) and player.y > 0) player.y-=1 --up
+ if (btn(0,player.playerNumber) and player.x > 9) player.x-=1 --left
+ if (btn(1,player.playerNumber) and player.x < 110) player.x+=1 --right
+ if (btn(3,player.playerNumber) and player.y < 110) player.y+=1 --down
+ if (btn(2,player.playerNumber) and player.y > 9) player.y-=1 --up
  if (btn(4,player.playerNumber) and player.cooldown == 0) then
   fire(player)
  end
@@ -78,13 +99,26 @@ function move_bullets()
  for b in all(player1.bullets) do 
   b.x += b.dx
   b.y += b.dy
+  if(collide(b,player2)) then 
+  	player2.health -= 1
+	if (player2.health == 0) then
+	 gameover = true
+	 p1win = true
+	end
+  end
  end
  for b in all(player2.bullets) do 
   b.x += b.dx
   b.y += b.dy
+  if(collide(b,player1)) then 
+  	player1.health -= 1
+	if (player1.health == 0) then
+	 gameover = true
+	 p2win = true
+	end
+  end
  end
 end
-
 --Relating to draw
 function draw_players()
  spr(player1.sprite,player1.x,player1.y)
@@ -99,6 +133,24 @@ function draw_bullets()
   spr(b.sp, b.x, b.y)
  end
 end
+
+function collide(obj, other)
+	if other.x+other.hitbox.x+other.hitbox.w >
+	obj.x+obj.hitbox.x and
+	other.y+other.hitbox.y+other.hitbox.h >
+	obj.y+obj.hitbox.y and
+	other.x+other.hitbox.x <
+	obj.x+obj.hitbox.x+obj.hitbox.w and
+	other.y+other.hitbox.y <
+	obj.y+obj.hitbox.y+obj.hitbox.h then
+	return true
+	end
+end
+
+function print_centered(str)
+	print(str, 64 - (#str * 2), 60, 8)
+end
+
 __gfx__
 65599556000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 56599565000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -198,3 +250,5 @@ __map__
 0000000000000000000000000000000000000000000000000000000000002400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 2424242424242424242424242424242424242424242424242424242424242400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000242424242424000000000000000000002424240024242424242400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+__sfx__
+000100002c650316503565039650366502e650266502065019650126501065010650106500f6500e6500e6500d6500d6500c6500c6500c6500b6500b6500b6500965008650076500565002650006500565002650
