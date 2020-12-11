@@ -4,69 +4,97 @@ __lua__
 function _init()
  make_player()
  make_bullets()
- cooldown = 0
 end
 function _update() 
- move_player()
+ move_player(player1)
+ move_player(player2)
  move_bullets()
- if (cooldown > 0) cooldown-=1
+ if (player1.cooldown > 0) player1.cooldown-=1
+ if (player2.cooldown > 0) player2.cooldown-=1
 end
 function _draw()
  cls() --clear screen
- draw_player()
+ draw_players()
  draw_bullets()
 end
 
 --Relating to init
 function make_player()
- player = {}
- player.x=64
- player.y=64
- player.sprite=1
+ player1={
+  playerNumber=0,
+  x=0,
+  y=64,
+  sprite=1,
+  cooldown=0,
+  dx=2,
+  dy=0,
+  bullets={}
+  }
+
+ player2={
+	 playerNumber=1,
+	 x=120,
+	 y=64,
+	 sprite=2,
+	 cooldown=0,
+	 dx=-2,
+	 dy=0,
+	 bullets={}
+ }
 end
 
 function make_bullets()
  bullets={}
 end
 
-function fire()
+function fire(player)
  local bullet = {
 	 sp=3,
-	 x=player.x,
+	 x=player.x+1,
 	 y=player.y,
-	 dx=2,
-	 dy=0
+	 dx=player.dx,
+	 dy=player.dy
  }
- add(bullets,bullet)
- cooldown = 5
+ if (player.playerNumber==1) then
+  bullet.x-=8
+ end
+ add(player.bullets,bullet)
+ player.cooldown = 5
 end
 
 --Relating to update
-function move_player()
- if (btn(0) and player.x > 0) player.x-=1 --left
- if (btn(1) and player.x < 120) player.x+=1 --right
- 
- if (btn(3) and player.y < 120) player.y+=1 --down
- if (btn(2) and player.y > 0) player.y-=1 --up
- if (btn(4) and cooldown == 0) then
-  fire()
+function move_player(player)
+ if (btn(0,player.playerNumber) and player.x > 0) player.x-=1 --left
+ if (btn(1,player.playerNumber) and player.x < 120) player.x+=1 --right
+ if (btn(3,player.playerNumber) and player.y < 120) player.y+=1 --down
+ if (btn(2,player.playerNumber) and player.y > 0) player.y-=1 --up
+ if (btn(4,player.playerNumber) and player.cooldown == 0) then
+  fire(player)
  end
 end
 
 function move_bullets()
- for b in all(bullets) do 
+ for b in all(player1.bullets) do 
+  b.x += b.dx
+  b.y += b.dy
+ end
+ for b in all(player2.bullets) do 
   b.x += b.dx
   b.y += b.dy
  end
 end
 
 --Relating to draw
-function draw_player()
- spr(player.sprite,player.x,player.y)
+function draw_players()
+ spr(player1.sprite,player1.x,player1.y)
+ spr(player2.sprite,player2.x,player2.y,1,1,true,false)
 end
 
 function draw_bullets()
- for b in all(bullets) do 
+ for b in all(player1.bullets) do 
+  spr(b.sp, b.x, b.y)
+ end
+ for b in all(player2.bullets) do 
   spr(b.sp, b.x, b.y)
  end
 end
